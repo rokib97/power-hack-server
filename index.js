@@ -34,6 +34,23 @@ async function run() {
       res.send(bills);
     });
 
+    // update bill api
+    app.put("/update-billing/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedBill = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: updatedBill,
+      };
+      const result = await billCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
     // delete bill api
     app.delete("/delete-billing/:id", async (req, res) => {
       const id = req.params.id;
