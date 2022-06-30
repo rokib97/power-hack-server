@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -32,6 +32,14 @@ async function run() {
     app.get("/billing-list", async (req, res) => {
       const bills = await billCollection.find().toArray();
       res.send(bills);
+    });
+
+    // delete bill api
+    app.delete("/delete-billing/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await billCollection.deleteOne(query);
+      res.send(result);
     });
 
     console.log("db connected");
