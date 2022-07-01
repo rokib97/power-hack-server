@@ -1,6 +1,7 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
+const bcryptjs = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -16,22 +17,64 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+// function verifyJWT(req, res, next) {
+//     const authorization = req.headers.authorization;
+//     if (!authorization) {
+//       return res.status(401).send({ message: "UnAuthorized" });
+//     }
+//     const token = authorization.split(" ")[1];
+//     jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+//       if (err) {
+//         return res.status(403).send({ message: "Forbidden access" });
+//       }
+//       req.decoded = decoded;
+//       next();
+//     });
+//   }
 async function run() {
   try {
     await client.connect();
     const billCollection = client.db("power_hack").collection("bills");
+    const userCollection = client.db("power_hack").collection("users");
 
     // add billling api
     app.post("/add-billing", async (req, res) => {
       const bill = req.body;
       const result = await billCollection.insertOne(bill);
-      res.send(result);
+      result.acknowledged
+        ? res.status(200).send({
+            success: true,
+            message: "Data Saved Succesfully!",
+          })
+        : res.status(500).send({
+            success: false,
+            message: "Internal Server Error",
+          });
     });
 
     // get billing list api
     app.get("/billing-list", async (req, res) => {
-      const bills = await billCollection.find().toArray();
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      let bills;
+      if (size || page) {
+        bills = await billCollection
+          .find()
+          .skip(page * size)
+          .limit(size)
+          .toArray();
+      } else {
+        bills = await billCollection.find().toArray();
+      }
+
       res.send(bills);
+    });
+
+    // page count api
+    app.get("/billing-listCount", async (req, res) => {
+      const count = await billCollection.estimatedDocumentCount();
+      res.send({ count });
     });
 
     // update bill api
@@ -58,7 +101,52 @@ async function run() {
       const result = await billCollection.deleteOne(query);
       res.send(result);
     });
+    // user registration
+    app.post("/registration", async (req, res) => {
+      const email = req.body.email;
+      const name = req.body.name;
+      const password = req.body.password;
+      const hashedPassword = bcryptjs.hashSync(password, 10);
 
+      const requester = await userCollection.findOne({ email: email });
+
+      if (requester) {
+        res.send({ status: 401, message: "user already exits in database" });
+      } else {
+        const user = {
+          email,
+          name,
+          hashedPassword,
+        };
+        const result = await userCollection.insertOne(user);
+        res.send({ status: 200, message: "User created successfull" });
+      }
+    });
+
+    // Login
+    app.post("/login", async (req, res) => {
+      const email = req.body.email;
+      const password = req.body.password;
+      const requesterAccount = await userCollection.findOne({ email: email });
+      if (requesterAccount) {
+        const isPasswordCorrect = bcryptjs.compareSync(
+          password,
+          requesterAccount.hashedPassword
+        );
+        if (isPasswordCorrect) {
+          const userToken = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET);
+          res.send({
+            status: 200,
+            message: "Login Successfull",
+            token: userToken,
+          });
+        } else {
+          res.send({ status: 401, message: "User or pass does not match" });
+        }
+      } else {
+        res.send({ status: 401, message: "User or pass does not match" });
+      }
+    });
     console.log("db connected");
   } finally {
     // await client.close();
