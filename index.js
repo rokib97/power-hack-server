@@ -71,6 +71,12 @@ async function run() {
       res.send(bills);
     });
 
+    // all bills
+    app.get("/all-bill", async (req, res) => {
+      const bills = await billCollection.find().toArray();
+      res.send(bills);
+    });
+
     // page count api
     app.get("/billing-listCount", async (req, res) => {
       const count = await billCollection.estimatedDocumentCount();
