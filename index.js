@@ -18,20 +18,20 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-// function verifyJWT(req, res, next) {
-//     const authorization = req.headers.authorization;
-//     if (!authorization) {
-//       return res.status(401).send({ message: "UnAuthorized" });
-//     }
-//     const token = authorization.split(" ")[1];
-//     jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
-//       if (err) {
-//         return res.status(403).send({ message: "Forbidden access" });
-//       }
-//       req.decoded = decoded;
-//       next();
-//     });
-//   }
+function verifyJWT(req, res, next) {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ message: "UnAuthorized" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 async function run() {
   try {
     await client.connect();
