@@ -116,7 +116,7 @@ async function run() {
       res.send(user);
     });
 
-    // user registration
+    // user registration api
     app.post("/registration", async (req, res) => {
       const email = req.body.email;
       const name = req.body.name;
