@@ -39,7 +39,7 @@ async function run() {
     const userCollection = client.db("power_hack").collection("users");
 
     // add billling api
-    app.post("/add-billing", async (req, res) => {
+    app.post("/add-billing", verifyJWT, async (req, res) => {
       const bill = req.body;
       const result = await billCollection.insertOne(bill);
       result.acknowledged
@@ -78,7 +78,7 @@ async function run() {
     });
 
     // update bill api
-    app.put("/update-billing/:id", async (req, res) => {
+    app.put("/update-billing/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const updatedBill = req.body;
       const filter = { _id: ObjectId(id) };
@@ -95,12 +95,20 @@ async function run() {
     });
 
     // delete bill api
-    app.delete("/delete-billing/:id", async (req, res) => {
+    app.delete("/delete-billing/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await billCollection.deleteOne(query);
       res.send(result);
     });
+
+    // get auth users
+    app.get("/users", verifyJWT, async (req, res) => {
+      const email = req.decoded;
+      const user = await userCollection.findOne({ email });
+      res.send(user);
+    });
+
     // user registration
     app.post("/registration", async (req, res) => {
       const email = req.body.email;
@@ -123,7 +131,7 @@ async function run() {
       }
     });
 
-    // Login
+    // user Login
     app.post("/login", async (req, res) => {
       const email = req.body.email;
       const password = req.body.password;
