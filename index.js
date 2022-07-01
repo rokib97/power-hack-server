@@ -51,6 +51,7 @@ async function run() {
             success: false,
             message: "Internal Server Error",
           });
+      wq;
     });
 
     // get billing list api
